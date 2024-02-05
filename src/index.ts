@@ -9,6 +9,7 @@ import {
   getMessagesRoute,
   getThreadsRoute,
   loginRoute,
+  initRoute,
 } from "./platform/routes/index";
 import { initWebSocketServer } from "./lib/ws";
 
@@ -20,6 +21,7 @@ app.use(express.json());
 initWebSocketServer(server);
 
 app.post("/api/login", loginRoute);
+app.post("/api/init", initRoute);
 app.post("/api/searchUsers", searchUsersRoute);
 app.post("/api/getMessages", getMessagesRoute);
 app.post("/api/getThreads", getThreadsRoute);
