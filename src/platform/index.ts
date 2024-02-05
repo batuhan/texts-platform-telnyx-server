@@ -21,8 +21,9 @@ import {
   ExtraProp,
   ServerEvent,
   ServerEventType,
+  UserDBInsert,
 } from "../lib/types";
-import { messages, threads } from "../db/schema";
+import { messages, threads, users } from "../db/schema";
 import { db } from "../db";
 import {
   selectMessages,
@@ -236,10 +237,10 @@ export async function sendMessage(
 /* 
     Gets the loginCreds, adds the extra fields to a map of <userId,extra> and returns the currentUser
 */
-export function login(
+export async function login(
   creds: LoginCreds,
   userID: string
-): CurrentUser | undefined {
+): Promise<CurrentUser | undefined> {
   if ("custom" in creds) {
     const displayText = creds.custom.label;
     const currentUser: CurrentUser = {
@@ -247,6 +248,14 @@ export function login(
       username: "test",
       displayText,
     };
+
+    const user: UserDBInsert = {
+      id: userID,
+      fullName: "User",
+      isSelf: true,
+    };
+
+    await db.insert(users).values(user);
 
     const extra = creds.custom;
     delete extra.baseURL;

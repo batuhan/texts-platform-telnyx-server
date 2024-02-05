@@ -30,7 +30,7 @@ import { getExtra } from "../../lib/helpers";
 export const loginRoute = async (req: Request, res: Response) => {
   console.log("login");
   const { creds, currentUserID }: LoginRequest = req.body;
-  const user = login(creds, currentUserID);
+  const user = await login(creds, currentUserID);
 
   if (!user) {
     res.status(401).send({ data: undefined });
