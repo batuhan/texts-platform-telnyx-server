@@ -1,9 +1,9 @@
 import { db } from ".";
-import { ThreadWithMessagesAndParticipants } from "../lib/types";
+import { ThreadWithMessagesAndParticipants, UserID } from "../lib/types";
 import { eq } from "drizzle-orm";
 import { messages, threads, users } from "./schema";
 
-export async function selectThread(threadID: string) {
+export async function selectThread(threadID: string, currentUserID: string) {
   const thread = await db.query.threads.findFirst({
     where: eq(threads.id, threadID),
     with: {
@@ -22,7 +22,7 @@ export async function selectThread(threadID: string) {
   return thread;
 }
 
-export async function selectThreads(): Promise<
+export async function selectThreads(currentUserID: UserID): Promise<
   ThreadWithMessagesAndParticipants[]
 > {
   const threads = await db.query.threads.findMany({
@@ -38,7 +38,7 @@ export async function selectThreads(): Promise<
   });
   return threads;
 }
-export async function selectUsers() {
+export async function selectUsers(currentUserID: UserID) {
   const dbUsers = await db.select().from(users);
 
   return dbUsers;

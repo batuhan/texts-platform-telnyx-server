@@ -17,10 +17,17 @@ import {
   MessageSendOptions,
   CurrentUser,
   LoginCreds,
+  SerializedSession,
+  ExtraProp,
 } from "../lib/types";
 import { messages, threads, users } from "../db/schema";
 import { db } from "../db";
-import { selectMessages, selectThread, selectThreads } from "../db/repo";
+import {
+  selectMessages,
+  selectThread,
+  selectThreads,
+  selectUsers,
+} from "../db/repo";
 import {
   extraMap,
   mapDbMessageToTextsMessage,
@@ -33,10 +40,17 @@ import {
 */
 export async function createThread(
   userIDs: UserID[],
+  currentUserID: UserID,
   title?: string,
   messageText?: string
 ): Promise<Thread> {
   const userId = userIDs[0];
+
+  // You can use currentUserID to get the extra data you may need to create a thread
+  const extra = extraMap.get(currentUserID);
+  if (!extra) {
+    throw new Error(`No extra found for user ${currentUserID}`);
+  }
 
   const type: ThreadType = "single";
 
@@ -83,6 +97,7 @@ export async function createThread(
 */
 export async function getMessages(
   threadID: string,
+  currentUserID: UserID,
   pagination?: PaginationArg
 ): Promise<Paginated<Message>> {
   const dbMessages = await selectMessages(threadID);
@@ -105,8 +120,11 @@ export async function getMessages(
 /* 
     Gets a thread by threadID
 */
-export async function getThread(threadID: ThreadID): Promise<Thread> {
-  const dbThread = await selectThread(threadID);
+export async function getThread(
+  threadID: ThreadID,
+  currentUserID: UserID
+): Promise<Thread> {
+  const dbThread = await selectThread(threadID, currentUserID);
   const thread = mapDbThreadToTextsThread(dbThread);
   return thread;
 }
@@ -116,9 +134,10 @@ export async function getThread(threadID: ThreadID): Promise<Thread> {
 */
 export async function getThreads(
   inboxName: ThreadFolderName,
+  currentUserID: UserID,
   pagination?: PaginationArg
 ): Promise<PaginatedWithCursors<Thread>> {
-  const dbThreads = await selectThreads();
+  const dbThreads = await selectThreads(currentUserID);
 
   if (!dbThreads) {
     return {
@@ -145,8 +164,8 @@ export async function getThreads(
 /* 
     Returns a list of users available
 */
-export async function searchUsers(): Promise<User[]> {
-  const dbUsers = await db.select().from(users);
+export async function searchUsers(currentUserID: UserID): Promise<User[]> {
+  const dbUsers = await selectUsers(currentUserID);
 
   if (!dbUsers) {
     return [];
@@ -167,6 +186,7 @@ export async function sendMessage(
   userMessage: Message,
   threadID: ThreadID,
   content: MessageContent,
+  currentUserID: UserID,
   options?: MessageSendOptions
 ): Promise<Message> {
   const dbUserMessage: MessageDBInsert = {
@@ -213,14 +233,27 @@ export function login(
     const extra = creds.custom;
     delete extra.baseURL;
 
-    if (extra) {
-      extraMap.set(userID, extra);
-    } else {
-      console.log(`No user found with ID ${userID}`);
-    }
+    extraMap.set(userID, extra);
 
     return currentUser;
   } else {
     return undefined;
+  }
+}
+
+/* 
+  Reinitializes the user with the serialized session data
+*/
+export function initUser(session: SerializedSession) {
+  const currentUser: CurrentUser = session.currentUser;
+  const extra: ExtraProp = session.extra;
+  const userID = currentUser.id;
+
+  const currentExtra = extraMap.get(userID);
+
+  if (!currentExtra) {
+    extraMap.set(userID, extra);
+  } else {
+    console.log(`No user found with ID ${userID}`);
   }
 }

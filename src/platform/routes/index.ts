@@ -4,6 +4,7 @@ import {
   GetMessagesRequest,
   GetThreadRequest,
   GetThreadsRequest,
+  InitRequest,
   LoginRequest,
   SearchUsersRequest,
   SendMessageRequest,
@@ -15,6 +16,7 @@ import {
   getMessages,
   getThread,
   getThreads,
+  initUser,
   login,
   searchUsers,
   sendMessage,
@@ -43,6 +45,21 @@ export const loginRoute = async (req: Request, res: Response) => {
 };
 
 /* 
+  @route /api/init
+  @method POST
+  @body { session: SerializedSession }
+  @response { data: string }
+*/
+export const initRoute = async (req: Request, res: Response) => {
+  console.log("init");
+  const { session }: InitRequest = req.body;
+
+  initUser(session);
+
+  res.send({ data: "success" });
+};
+
+/* 
   @route /api/createThread
   @method POST
   @body { userIDs: UserID[], currentUserID: UserID, title?: string, messageText?: string }
@@ -52,7 +69,7 @@ export const createThreadRoute = async (req: Request, res: Response) => {
   console.log("createThread");
   const { userIDs, title, messageText, currentUserID }: CreateThreadRequest =
     req.body;
-  const thread = await createThread(userIDs, title, messageText);
+  const thread = await createThread(userIDs, currentUserID, title, messageText);
   res.send({ data: thread });
 };
 
@@ -65,7 +82,7 @@ export const createThreadRoute = async (req: Request, res: Response) => {
 export const getMessagesRoute = async (req: Request, res: Response) => {
   console.log("getMessages");
   const { threadID, pagination, currentUserID }: GetMessagesRequest = req.body;
-  const messages = await getMessages(threadID);
+  const messages = await getMessages(threadID, currentUserID);
   res.send({ data: messages });
 };
 
@@ -78,7 +95,7 @@ export const getMessagesRoute = async (req: Request, res: Response) => {
 export const getThreadRoute = async (req: Request, res: Response) => {
   console.log("getThread");
   const { threadID, currentUserID }: GetThreadRequest = req.body;
-  const thread = await getThread(threadID);
+  const thread = await getThread(threadID, currentUserID);
   res.send({ data: thread });
 };
 
@@ -91,7 +108,7 @@ export const getThreadRoute = async (req: Request, res: Response) => {
 export const getThreadsRoute = async (req: Request, res: Response) => {
   console.log("getThreads");
   const { inboxName, pagination, currentUserID }: GetThreadsRequest = req.body;
-  const threads = await getThreads(inboxName, pagination);
+  const threads = await getThreads(inboxName, currentUserID, pagination);
   res.send({ data: threads });
 };
 
@@ -104,7 +121,7 @@ export const getThreadsRoute = async (req: Request, res: Response) => {
 export const searchUsersRoute = async (req: Request, res: Response) => {
   console.log("searchUsers");
   const { typed, currentUserID }: SearchUsersRequest = req.body;
-  const users = await searchUsers();
+  const users = await searchUsers(currentUserID);
   res.send({ data: users });
 };
 
@@ -128,7 +145,13 @@ export const sendMessageRoute = async (req: Request, res: Response) => {
     userMessage,
     currentUserID,
   }: SendMessageRequest = req.body;
-  const message = await sendMessage(userMessage, threadID, content, options);
+  const message = await sendMessage(
+    userMessage,
+    threadID,
+    content,
+    currentUserID,
+    options
+  );
 
   const event: ServerEvent = {
     type: ServerEventType.STATE_SYNC,
