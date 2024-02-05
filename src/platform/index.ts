@@ -19,8 +19,10 @@ import {
   LoginCreds,
   SerializedSession,
   ExtraProp,
+  ServerEvent,
+  ServerEventType,
 } from "../lib/types";
-import { messages, threads, users } from "../db/schema";
+import { messages, threads } from "../db/schema";
 import { db } from "../db";
 import {
   selectMessages,
@@ -34,6 +36,7 @@ import {
   mapDbThreadToTextsThread,
   mapDbUserToTextsUser,
 } from "../lib/helpers";
+import { sendEvent } from "../lib/ws";
 
 /*
     Creates a thread and returns the created thread
@@ -180,7 +183,9 @@ export async function searchUsers(currentUserID: UserID): Promise<User[]> {
 }
 
 /* 
-   Produces a response message.
+    Produces a response message.
+    Create both the userMessage and the responseMessage and insert them into the database. Make sure to flag isSender as true for the userMessage and false for the responseMessage.
+    Send a STATE_SYNC event to the client with the responseMessage to update the client state.
 */
 export async function sendMessage(
   userMessage: Message,
@@ -193,6 +198,9 @@ export async function sendMessage(
     ...userMessage,
     timestamp: new Date(userMessage.timestamp),
     seen: true,
+    isSender: true,
+    isDelivered: true,
+    senderID: currentUserID,
     threadID,
   };
 
@@ -212,11 +220,21 @@ export async function sendMessage(
 
   await db.insert(messages).values([dbUserMessage, dbResponseMessage]);
 
+  const event: ServerEvent = {
+    type: ServerEventType.STATE_SYNC,
+    objectName: "message",
+    mutationType: "upsert",
+    objectIDs: { threadID },
+    entries: [responseMessage],
+  };
+
+  sendEvent(event, currentUserID);
+
   return responseMessage;
 }
 
 /* 
-  Gets the loginCreds, adds the extra fields to a map of <userId,extra> and returns the currentUser
+    Gets the loginCreds, adds the extra fields to a map of <userId,extra> and returns the currentUser
 */
 export function login(
   creds: LoginCreds,
@@ -242,7 +260,7 @@ export function login(
 }
 
 /* 
-  Reinitializes the user with the serialized session data
+    Reinitializes the user with the serialized session data
 */
 export function initUser(session: SerializedSession) {
   const currentUser: CurrentUser = session.currentUser;

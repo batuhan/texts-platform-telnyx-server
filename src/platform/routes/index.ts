@@ -8,8 +8,6 @@ import {
   LoginRequest,
   SearchUsersRequest,
   SendMessageRequest,
-  ServerEvent,
-  ServerEventType,
 } from "../../lib/types";
 import {
   createThread,
@@ -21,7 +19,6 @@ import {
   searchUsers,
   sendMessage,
 } from "..";
-import { sendEvent } from "../../lib/ws";
 import { getExtra } from "../../lib/helpers";
 
 /*
@@ -126,11 +123,6 @@ export const searchUsersRoute = async (req: Request, res: Response) => {
 };
 
 /*
-  There are two ways to return the response message from this route.
-  1 - Return the response message in data key of the json response. Which will be state synced in the client.
-  2 - Return undefined in data key of the json response, and instead emit a websocket event with the response message,
-  using the sendEvent helper function with the userID. So the state is updated in the client.
- 
   @route /api/sendMessage
   @method POST
   @body { threadID: ThreadID, content: MessageContent, options?: MessageSendOptions, userMessage: Message, currentUserID: UserID }
@@ -145,41 +137,12 @@ export const sendMessageRoute = async (req: Request, res: Response) => {
     userMessage,
     currentUserID,
   }: SendMessageRequest = req.body;
-  const message = await sendMessage(
+  await sendMessage(
     userMessage,
     threadID,
     content,
     currentUserID,
     options
   );
-
-  const event: ServerEvent = {
-    type: ServerEventType.STATE_SYNC,
-    objectName: "message",
-    mutationType: "upsert",
-    objectIDs: { threadID },
-    entries: [message],
-  };
-  /*
-    Examples of how to return the response message.
-
-    1 - Send back the message, returned in platform-sdk Message type
-    res.json({ data: message });
-  
-    2 - First create a ServerEvent, then send the response message using sendEvent helper function through websocket.
-    Return undefined from this function.
-    const event: ServerEvent = {
-      type: ServerEventType.STATE_SYNC,
-      objectName: "message",
-      mutationType: "upsert",
-      objectIDs: { threadID },
-      entries: [responseMessage],
-    };
-
-    sendEvent(event, userID);
-  
-    res.json({ data: undefined });
-  */
-  sendEvent(event, currentUserID);
-  res.send({ data: undefined });
+  res.send({ data: "success" });
 };
