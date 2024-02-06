@@ -126,7 +126,7 @@ export const searchUsersRoute = async (req: Request, res: Response) => {
   @route /api/sendMessage
   @method POST
   @body { threadID: ThreadID, content: MessageContent, options?: MessageSendOptions, userMessage: Message, currentUserID: UserID }
-  @response { data: undefined | Message } 
+  @response { data: "success" } 
 */
 export const sendMessageRoute = async (req: Request, res: Response) => {
   console.log("sendMessage");
