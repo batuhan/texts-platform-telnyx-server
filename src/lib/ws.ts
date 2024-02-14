@@ -38,4 +38,12 @@ function sendEvent(event: ServerEvent, userID: string) {
   }
 }
 
-export { initWebSocketServer, sendEvent, wss };
+function sendEventToEveryClient(event: ServerEvent) {
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify(event));
+    }
+  });
+}
+
+export { initWebSocketServer, sendEvent, sendEventToEveryClient, wss };

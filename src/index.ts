@@ -10,6 +10,7 @@ import {
   getThreadsRoute,
   loginRoute,
   initRoute,
+  telnyxWebhookRoute,
 } from "./platform/routes/index";
 import { initWebSocketServer } from "./lib/ws";
 
@@ -28,6 +29,7 @@ app.post("/api/getThreads", getThreadsRoute);
 app.post("/api/getThread", getThreadRoute);
 app.post("/api/createThread", createThreadRoute);
 app.post("/api/sendMessage", sendMessageRoute);
+app.post("/webhook", telnyxWebhookRoute);
 
 // Define the port and start server
 const PORT = process.env.PORT || 8080;

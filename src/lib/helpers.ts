@@ -89,10 +89,12 @@ export function mapDbUserToTextsUser(obj: UserDBSelect) {
   return user;
 }
 
-export const extraMap = new Map<string, any>();
+export const extraMap = new Map<string, { label: string }>();
 
 export function getExtra(userID: UserID) {
   const extra = extraMap.get(userID);
 
   return extra;
 }
+
+export const threadID = "Telnyx-Server";
