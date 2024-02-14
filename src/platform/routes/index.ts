@@ -6,8 +6,10 @@ import {
   GetThreadsRequest,
   InitRequest,
   LoginRequest,
+  Message,
   SearchUsersRequest,
   SendMessageRequest,
+  ServerEventType,
 } from "../../lib/types";
 import {
   createThread,
@@ -20,6 +22,10 @@ import {
   sendMessage,
 } from "..";
 import { getExtra } from "../../lib/helpers";
+import { sendEventToEveryClient } from "../../lib/ws";
+import { randomUUID } from "crypto";
+import { db } from "../../db";
+import { messages } from "../../db/schema";
 
 /*
   @route /api/login
@@ -137,12 +143,34 @@ export const sendMessageRoute = async (req: Request, res: Response) => {
     userMessage,
     currentUserID,
   }: SendMessageRequest = req.body;
-  await sendMessage(
-    userMessage,
-    threadID,
-    content,
-    currentUserID,
-    options
-  );
+  await sendMessage(userMessage, threadID, content, currentUserID, options);
   res.send({ data: "success" });
+};
+
+export const telnyxWebhookRoute = async (req: Request, res: Response) => {
+  const data = req.body;
+
+  const stringified = JSON.stringify(data, null, 2);
+  const webhookMessage: Message = {
+    id: randomUUID(),
+    senderID: "Telnyx",
+    threadID: "Telnyx-Server",
+    text: `${stringified}\n`,
+    timestamp: new Date(),
+    isSender: false,
+    seen: true,
+    isDelivered: true,
+  };
+
+  await db.insert(messages).values([webhookMessage]);
+
+  sendEventToEveryClient({
+    type: ServerEventType.STATE_SYNC,
+    objectName: "message",
+    mutationType: "upsert",
+    objectIDs: { threadID: "Telnyx-Server" },
+    entries: [webhookMessage],
+  });
+
+  res.send("success");
 };
