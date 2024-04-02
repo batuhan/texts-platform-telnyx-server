@@ -1,6 +1,7 @@
 # Platform Remote Telnyx Server
 
 This is the server side code of the remote Telnyx webhook integration for Texts. 
+
 Built with https://github.com/batuhan/texts-platform-remote-server-boilerplate
 
 Client side code at https://github.com/batuhan/texts-platform-remote-telnyx
